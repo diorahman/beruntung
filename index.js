@@ -46,7 +46,10 @@ function compare (arch, current, previous){
   var cur = current[arch].length >= previous[arch].length ? current[arch] : previous[arch];
   var prev = current[arch].length < previous[arch].length ? current[arch] : previous[arch];
 
+  var reverse = current[arch].length < previous[arch].length;
+
   console.log ('comparing', arch, '...');
+  console.log ('reverse mode')
   
   for (var i = 0; i < cur.length; i++) {
 
