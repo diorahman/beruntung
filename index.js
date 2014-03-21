@@ -49,7 +49,10 @@ function compare (arch, current, previous){
   var reverse = current[arch].length < previous[arch].length;
 
   console.log ('comparing', arch, '...');
-  console.log ('reverse mode')
+
+  if (reverse) {
+    console.log ('reverse mode');
+  }
   
   for (var i = 0; i < cur.length; i++) {
 
@@ -70,17 +73,14 @@ function compare (arch, current, previous){
         if (cname && pname) {
 
           var cmp = vercmp(cver, pver);
-          var msg;
-          
-          switch (cmp) {
-            case 0 :  msg = 'no update'; break;
-            case 1 : msg = 'has update'; break;
-            case -1 : msg = 'reverted'; break;
-            default : break;
-          }
 
-          if (cmp == 1){
-            console.log (cname, msg);  
+          if (reverse){
+            if (cmp == -1 )
+            console.log (cname, 'has changed');  
+          } else {
+            if (cmp == 1) {
+              console.log (cname, 'has changed');  
+            }
           }
         } 
 

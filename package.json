@@ -1,6 +1,6 @@
 {
   "name": "beruntung",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Today is better than yesterday",
   "main": "index.js",
   "scripts": {
@@ -14,12 +14,7 @@
     "url": "https://github.com/diorahman/beruntung.git"
   },
   "keywords": [
-    "diff",
-    "current",
-    ".list",
-    "and",
-    "yesterday's",
-    ".list"
+    "blankon", ".list"
   ],
   "author": "Dhi Aurrahman <diorahman@rockybars.com>",
   "license": "MIT",
