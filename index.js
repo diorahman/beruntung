@@ -43,58 +43,47 @@ function read (url, cb) {
 
 function compare (arch, current, previous){
 
-  var cur = current[arch].length >= previous[arch].length ? current[arch] : previous[arch];
-  var prev = current[arch].length < previous[arch].length ? current[arch] : previous[arch];
-
-  var reverse = current[arch].length < previous[arch].length;
-
   console.log ('comparing', arch, '...');
 
-  if (reverse) {
-    console.log ('reverse mode');
-  }
-  
-  for (var i = 0; i < cur.length; i++) {
+  var currLen = current[arch].length;
+  var prevLen = previous[arch].length;
 
-    var carr = cur[i].split(' ');
+  var a = currLen >= prevLen ? current[arch] : previous[arch];
+  var b = currLen < prevLen ? current[arch] : previous[arch];
+  var reverse = currLen < prevLen;
+
+  for (var i = 0; i < a.length; i++) {
+
+    var carr = a[i].split(' ');
     var cver = carr.pop();
     var cname = carr.pop();
+
     var compared = false;
     var lastJ = 0;
 
-    for (var j = lastJ; j < prev.length; j++) {
-
-      var parr = prev[i].split(' ');
+    for (var j = lastJ; j < b.length; j++) {
+      var parr = b[j].split(' ');
       var pver = parr.pop();
-      var pname = parr.pop();
+      var pname = parr.pop(); 
 
-      if (cname == pname){
-
-        if (cname && pname) {
-
+      if (cname && pname){
+        if (cname == pname){
           var cmp = vercmp(cver, pver);
+          if (cmp != 0) {
+            cmp = reverse ? cmp * -1 : cmp;
 
-          if (reverse){
-            if (cmp == -1 )
-            console.log (cname, 'has changed');  
-          } else {
-            if (cmp == 1) {
-              console.log (cname, 'has changed');  
+            var message = cmp > 0 ? "updated" : "donwgraded"
+            
+            if (reverse){
+              console.log (message, pname, cver, pver);    
+            } else {
+              console.log (message, pname, pver, cver);  
             }
           }
-        } 
-
-        compared = true;
-        lastJ = j;
-        break;
+        }
       }
     }
-
-    if (j == prev.length && !compared) {
-      console.log (cname);
-    }
   }
-
 }
 
 function list (dirs, arch) {
@@ -116,6 +105,13 @@ module.exports = function(){
   
     var cur = res.pop();
     var prev = res.pop();
+    prev = res.pop();
+
+    if (!prev) {
+      console.log ("cannot find previous version");
+      return;
+    }
+
     var temp = [];
     var urls = [];
     var current = {};
@@ -132,7 +128,6 @@ module.exports = function(){
     });  
 
     async.map(urls, read, function(err, data){
-      
       for (var i = 0; i < data.length; i++) {
         var d = data[i];
         if (d.current) {
@@ -141,17 +136,12 @@ module.exports = function(){
           previous[d.arch] = d.body.split('\n');
         }
       }
-
       var keys = Object.keys(current);
-
       keys.forEach(function(key){
         compare(key, current, previous);
       });
-
       console.log ('done!');
-
     });
-
   });
 }
 
