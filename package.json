@@ -6,15 +6,16 @@
   "scripts": {
     "test": "make test"
   },
-  "bin" : {
-    "untung" : "bin/untung.js"
+  "bin": {
+    "untung": "bin/untung.js"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/diorahman/beruntung.git"
   },
   "keywords": [
-    "blankon", ".list"
+    "blankon",
+    ".list"
   ],
   "author": "Dhi Aurrahman <diorahman@rockybars.com>",
   "license": "MIT",
@@ -26,6 +27,7 @@
     "cheerio": "^0.13.1",
     "request": "^2.34.0",
     "async": "^0.2.10",
-    "vercmp": "0.0.2"
+    "vercmp": "0.0.2",
+    "lodash": "^2.4.1"
   }
 }

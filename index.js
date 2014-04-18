@@ -3,6 +3,7 @@ var cheerio = require ('cheerio');
 var path = require ('path');
 var async = require ('async');
 var vercmp = require ('vercmp');
+var _ = require ('lodash');
 var root = 'http://cdimage.blankonlinux.or.id/blankon/livedvd-harian';
 
 var code = 'tambora';
@@ -44,46 +45,76 @@ function read (url, cb) {
 function compare (arch, current, previous){
 
   console.log ('comparing', arch, '...');
+  
+  var result = { arch: arch, updated : [], downgraded : [], added : [], removed : []};
 
-  var currLen = current[arch].length;
-  var prevLen = previous[arch].length;
-
-  var a = currLen >= prevLen ? current[arch] : previous[arch];
-  var b = currLen < prevLen ? current[arch] : previous[arch];
-  var reverse = currLen < prevLen;
+  var a = current[arch];
+  var b = previous[arch];
+  var as = [];
+  var bs = [];
+  var dictA = {};
+  var dictB = {};
 
   for (var i = 0; i < a.length; i++) {
-
+    if (!a[i]) continue;
     var carr = a[i].split(' ');
     var cver = carr.pop();
     var cname = carr.pop();
 
-    var compared = false;
-    var lastJ = 0;
+    if (cname){
+      dictA[cname] = cver;
+    }
+  }  
 
-    for (var j = lastJ; j < b.length; j++) {
-      var parr = b[j].split(' ');
-      var pver = parr.pop();
-      var pname = parr.pop(); 
+  for (var j = 0; j < b.length; j++) {
+    if (!b[j]) continue;
+    var parr = b[j].split(' ');
+    var pver = parr.pop();
+    var pname = parr.pop();
 
-      if (cname && pname){
-        if (cname == pname){
-          var cmp = vercmp(cver, pver);
-          if (cmp != 0) {
-            cmp = reverse ? cmp * -1 : cmp;
+    if (pname) {
+      dictB[pname] = pver; 
+    }
+  }
 
-            var message = cmp > 0 ? "updated" : "donwgraded"
-            
-            if (reverse){
-              console.log (message, pname, cver, pver);    
-            } else {
-              console.log (message, pname, pver, cver);  
-            }
-          }
-        }
+  as = Object.keys (dictA);
+  bs = Object.keys (dictB);
+
+  var reversed = as.length < bs.length;
+  var intersection = _.intersection(as, bs);
+
+  var tmp = [as];
+  tmp = tmp.concat(intersection);
+  var ao = _.without.apply (this, tmp);
+
+  tmp = [bs];
+  tmp = tmp.concat(intersection);
+  var bo = _.without.apply (this, tmp);
+
+  for (var k in dictA) {
+    if (dictB[k]) {
+      var cmp = vercmp(dictA[k], dictB[k]);
+      if (cmp > 0){
+        console.log ("updated", k, dictB[k], dictA[k])
+        result.updated.push({ name : k, from : dictB[k], to: dictA[k]});
+      } else if (cmp < 0) {
+        console.log ("downgraded", k, dictB[k], dictA[k])
+        result.downgraded.push({ name : k, from : dictB[k], to: dictA[k]});
       }
     }
   }
+
+  for (var l = 0; l < ao.length; l++) {
+    console.log ("added", ao[l], dictA[ao[l]])
+    result.added.push({ name : ao[l], from : dictA[ao[l]] });
+  }
+
+  for (l = 0; l < bo.length; l++) {
+    console.log ("removed", bo[l], dictB[bo[l]])
+    result.removed.push({ name : bo[l], from : dictB[bo[l]] });
+  }
+
+  return result;
 }
 
 function list (dirs, arch) {
@@ -97,7 +128,7 @@ function list (dirs, arch) {
   return urls;
 }
 
-module.exports = function(){
+module.exports = function(cb){
 
   console.log ('comparing ...');
 
@@ -137,14 +168,18 @@ module.exports = function(){
         }
       }
       var keys = Object.keys(current);
+
+      var results = [];
+
       keys.forEach(function(key){
-        compare(key, current, previous);
+        results.push(compare(key, current, previous));
       });
-      console.log ('done!');
+
+      if (cb) {
+        cb (null, results);  
+      } else {
+        console.log ("done");
+      }
     });
   });
 }
-
-
-
-
