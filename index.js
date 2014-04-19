@@ -36,9 +36,19 @@ function get (cb){
 function read (url, cb) {
 
   console.log ('reading', url, '...');
+  console.log (url);
 
   request (root + url, function (err, res, body){
-    cb (err, {current : isCurrent(res.req.path), arch : getArch (res.req.path), body : body})    
+
+    if (res.statusCode == 200) {
+      return cb (new Error("wrong"));
+    } 
+
+    cb (err, {
+      current : isCurrent(res.req.path), 
+      arch : getArch (res.req.path), 
+      body : body
+    });    
   });
 }
 
@@ -128,6 +138,21 @@ function list (dirs, arch) {
   return urls;
 }
 
+function getCurrentLog (cb){
+  request(root + "/current/log.txt", function (err, res, body){
+    var logs = body.split("\n");
+    var subs = "";
+    for (var i = logs.length - 20; i < logs.length; i++) {
+      subs += logs[i] + "\n"
+    }
+    console.log (subs);
+    if (cb) {
+      return cb (err, {log : subs});  
+    }
+    return;
+  });
+}
+
 module.exports = function(cb){
 
   console.log ('comparing ...');
@@ -140,7 +165,7 @@ module.exports = function(cb){
 
     if (!prev) {
       console.log ("cannot find previous version");
-      return;
+      return getCurrentLog(cb);
     }
 
     var temp = [];
@@ -159,6 +184,12 @@ module.exports = function(cb){
     });  
 
     async.map(urls, read, function(err, data){
+
+      if (err) {
+        // todo: errorrrr
+        return getCurrentLog(cb);
+      }
+
       for (var i = 0; i < data.length; i++) {
         var d = data[i];
         if (d.current) {
@@ -168,7 +199,6 @@ module.exports = function(cb){
         }
       }
       var keys = Object.keys(current);
-
       var results = [];
 
       keys.forEach(function(key){
