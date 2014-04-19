@@ -40,17 +40,31 @@ function read (url, cb) {
 
   request (root + url, function (err, res, body){
 
-    if (res.statusCode == 200) {
+    if (res.statusCode != 200) {
       return cb (new Error("wrong"));
     } 
+    cb (err, {
+      current : isCurrent(res.req.path), 
+      arch : getArch (res.req.path), 
+      path : res.req.path,
+      body : res.body
+    });    
+  });
+}
+
+function check (url, cb) {
+
+  request (root + url, function (err, res, body){
 
     cb (err, {
       current : isCurrent(res.req.path), 
       arch : getArch (res.req.path), 
-      body : body
+      path : res.req.path,
+      exists : res.statusCode == 200
     });    
   });
 }
+
 
 function compare (arch, current, previous){
 
@@ -58,8 +72,8 @@ function compare (arch, current, previous){
   
   var result = { arch: arch, updated : [], downgraded : [], added : [], removed : []};
 
-  var a = current[arch];
-  var b = previous[arch];
+  var a = current.split("\n");
+  var b = previous.split("\n");
   var as = [];
   var bs = [];
   var dictA = {};
@@ -132,7 +146,9 @@ function list (dirs, arch) {
   var urls = []
 
   dirs.forEach(function(dir){
-    urls.push(path.join('/', dir, file + '.list'));
+    if (dir != "..") {
+      urls.push(path.join('/', dir, file + '.list'));    
+    }
   });
 
   return urls;
@@ -158,57 +174,68 @@ module.exports = function(cb){
   console.log ('comparing ...');
 
   get (function(err, res){
-  
-    var cur = res.pop();
-    var prev = res.pop();
-    prev = res.pop();
 
-    if (!prev) {
-      console.log ("cannot find previous version");
-      return getCurrentLog(cb);
-    }
-
-    var temp = [];
+    var temp = {};
     var urls = [];
     var current = {};
     var previous = {};
 
-    archs.forEach(function(a){
-      temp.push(list ([cur, prev], a));
-    });
+    function inspect (arch, fn){
+      var availables = list (res, arch);
 
-    temp.forEach(function(arr){
-      arr.forEach(function(a){
-        urls.push(a);
-      });
-    });  
+      // get current;
+      var cur = availables.pop();
+      availables.pop();
 
-    async.map(urls, read, function(err, data){
+      read(cur, function(err, current){
 
-      if (err) {
-        // todo: errorrrr
-        return getCurrentLog(cb);
-      }
+        if (err) {
+          // get error log
+          return getCurrentLog(cb);
 
-      for (var i = 0; i < data.length; i++) {
-        var d = data[i];
-        if (d.current) {
-          current[d.arch] = d.body.split('\n'); 
         } else {
-          previous[d.arch] = d.body.split('\n');
-        }
-      }
-      var keys = Object.keys(current);
-      var results = [];
 
-      keys.forEach(function(key){
-        results.push(compare(key, current, previous));
+          async.mapSeries(availables, check, function(err, prevs){
+
+            if (err && fn) { return fn (err)}
+
+            var i = prevs.length;
+            var prev;
+            while (i--) {
+              if (prevs[i].exists) {
+                prev = prevs[i];
+                break;
+              }
+            }
+
+            var len = "/blankon/livedvd-harian".length;
+            prev = prev.path.substr(len, prev.length);
+
+            read (prev, function(err, previous){
+              
+              if (err && fn) {return fn(err);}
+
+              var result = compare(arch, current.body, previous.body);
+              fn (null, result);
+            });
+          });
+        }
+      });
+    }
+
+    async.map (archs, inspect, function(err, data){
+
+      if (err && cb) return cb (err);
+      var obj = {};
+
+      _.map (data, function (d){
+        _.merge (obj, d);
       });
 
       if (cb) {
-        cb (null, results);  
+        cb (null, obj);  
       } else {
-        console.log ("done");
+        //console.log (JSON.stringify (obj, null, 2))
       }
     });
   });
