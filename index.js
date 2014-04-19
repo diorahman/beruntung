@@ -226,16 +226,11 @@ module.exports = function(cb){
     async.map (archs, inspect, function(err, data){
 
       if (err && cb) return cb (err);
-      var obj = {};
-
-      _.map (data, function (d){
-        _.merge (obj, d);
-      });
 
       if (cb) {
-        cb (null, obj);  
+        cb (null, data);  
       } else {
-        //console.log (JSON.stringify (obj, null, 2))
+        console.log (JSON.stringify (obj, null, 2))
       }
     });
   });
