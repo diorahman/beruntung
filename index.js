@@ -24,12 +24,21 @@ function isCurrent (url) {
 function get (cb){
   var arr = [];
   request (root, function (err, res, body){
-    var $ = cheerio.load (body);
-    $('a').each(function (i, el){
-      var href = $(this).attr('href');
-      arr.push(href.substring(0, href.length - 1));
-    });
-    cb(err, arr);
+
+    if (err) {
+      return cb (err);
+    }
+    
+    if (res.statusCode == 200) {
+      var $ = cheerio.load (body);
+      $('a').each(function (i, el){
+        var href = $(this).attr('href');
+        arr.push(href.substring(0, href.length - 1));
+      });
+      cb(err, arr);
+    } else {
+      console.log ("err");
+    }
   });  
 }
 
@@ -175,6 +184,14 @@ module.exports = function(cb){
 
   get (function(err, res){
 
+    if (err) {
+      if (cb) {
+        return cb (err, {log : err.message});
+      }
+      console.log (err.message);
+      return;
+    }
+
     var temp = {};
     var urls = [];
     var current = {};
@@ -230,7 +247,7 @@ module.exports = function(cb){
       if (cb) {
         cb (null, data);  
       } else {
-        console.log (JSON.stringify (obj, null, 2))
+        console.log (JSON.stringify (data, null, 2))
       }
     });
   });

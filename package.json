@@ -1,6 +1,6 @@
 {
   "name": "beruntung",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Today is better than yesterday",
   "main": "index.js",
   "scripts": {
